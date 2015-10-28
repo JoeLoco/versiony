@@ -5,8 +5,9 @@ var file2json = require('./file2json'),
 
     hasMajorMinorPatch = require('./hasMajorMinorPatch'),
     hasVersion         = require('./hasVersion'),
-
-    getVersion = require('./getVersion')
+    CommandEnd         = require('./Command/End'),
+    CommandFrom        = require('./Command/From'),
+    getVersion         = require('./getVersion');
 
 var versiony = (function(){
 
@@ -82,31 +83,11 @@ var versiony = (function(){
         },
 
         from: function(s){
-            source = s || 'package.json'
+            source = s || 'package.json';
 
-            try {
-                sourceJson = file2json(source)
-            } catch (ex){
-                console.log('Could not read source file "' + source + '"! ')
-                console.log(ex)
-
-                return this
-            }
-
-            var version = getVersion(sourceJson)
-
-            if (!version){
-                console.warn('Version could not be detected from "' + source + '"! Please either ' +
-                             'use a "version" key, with a semver string (eg: "1.2.3") or ' +
-                             'use "major", "minor" and "patch" keys to specify each semver part separately.'
-                             )
-                return this
-            }
-
-            this.model.set(version)
-            this.initial = String(this.model)
-
-            return this
+            var commandFrom = new CommandFrom(source, file2json, getVersion, this);
+            
+            return commandFrom.execute();
         },
 
         'with': function(file){
@@ -163,37 +144,8 @@ var versiony = (function(){
         },
 
         end: function(){
-
-            logStrip()
-
-            var files   = this.model.files().slice(),
-                version = String(this.model.get())
-
-            if (files.length){
-
-                console.log('Done. New version: ' + version)
-
-                logStrip()
-
-                console.log('Files updated:\n')
-
-                files.forEach(function(f){
-                    console.log(f)
-                })
-
-
-            } else {
-                console.log('No file updated.')
-            }
-
-            logStrip()
-
-            this.model.reset()
-
-            return {
-                version: version,
-                files  : files
-            }
+            var end = new CommandEnd(logStrip, this);
+            end.execute();
 
         }
     }
